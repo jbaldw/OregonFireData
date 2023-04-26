@@ -4,11 +4,12 @@
   "description": "Final visualization practice for visual infromatics",
   "main": "index.js",
   "dependencies": {
+    "ejs": "^3.1.9",
     "express": "^4.18.2"
   },
   "devDependencies": {},
   "scripts": {
-    "start": "sudo node index.js",  
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Phillip and Friends",
