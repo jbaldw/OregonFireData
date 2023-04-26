@@ -1,0 +1,16 @@
+{
+  "name": "visual-informatics-final",
+  "version": "1.0.0",
+  "description": "Final visualization practice for visual infromatics",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "sudo node index.js",  
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Phillip and Friends",
+  "license": "ISC"
+}
