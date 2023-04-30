@@ -208,18 +208,38 @@
 
             legend.addTo(map);
 
+            const countyInfo = L.control();
+
+            countyInfo.onAdd = function (map) {
+                this._div = L.DomUtil.create('div', 'info');
+                this.update();
+                return this._div;
+            };
+
+            countyInfo.update = function (props) {
+                const contents = props ? `<b>${props.DistrictName}</b><br />Estimated Acres Burned: ${[props.EstTotalAcres]}<br /> Caused By: ${props.CauseBy}` : 'Hover over a fire';
+                this._div.innerHTML = `<h4>Fire</h4>${contents}`;
+            };
+
+            countyInfo.addTo(map);
+
             let markers = L.markerClusterGroup();
 
-            for(fire of fires) {
-                if(fire.Lat_DD != undefined && fire.Long_DD != undefined) {
-                    if(fire.Lat_DD != "" && fire.Long_DD != "") {
-                        markers.addLayer(L.marker([fire.Lat_DD, fire.Long_DD]));
+            for (fire of fires) {
+                if (fire.Lat_DD != undefined && fire.Long_DD != undefined) {
+                    if (fire.Lat_DD != "" && fire.Long_DD != "") {
+                        markers.addLayer((function(fire) {
+                            return L.marker([fire.Lat_DD, fire.Long_DD]).on('mouseover', function(e) {
+                                countyInfo.update(fire);
+                            });
+                        })(fire).on('mouseout', function(e) {
+                            countyInfo.update();
+                        }));
                     }
                 }
             }
 
             markers.addTo(map);
-
         </script>
     </body>
 </html>
