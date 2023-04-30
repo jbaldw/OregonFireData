@@ -99,8 +99,8 @@
 
             // get color depending on acres burned value
             function getColor(d) {
-                return d > 100000 ? '#800026' :
-                    d > 50000  ? '#BD0026' :
+                return d > 500000 ? '#800026' :
+                    d > 100000  ? '#BD0026' :
                     d > 20000  ? '#E31A1C' :
                     d > 10000  ? '#FC4E2A' :
                     d > 5000   ? '#FD8D3C' :
@@ -164,8 +164,10 @@
                 let sum = 0;
 
                 for (let i = 0; i < fires.length; i++) {
-                    if (fires[i].County === county) {
+                    if(fires[i].EstTotalAcres) {
+                        if (fires[i].County === county) {
                         sum += parseFloat(fires[i].EstTotalAcres);
+                        }
                     }
                 }
 
