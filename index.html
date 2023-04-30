@@ -9,6 +9,9 @@
         
         <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
 
+        <link rel="stylesheet" href="/MarkerCluster.css"/>
+        <link rel="stylesheet" href="/MarkerCluster.default.css"/>
+
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin=""/>
         <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
 
@@ -65,6 +68,8 @@
 
         <div id='map'></div>
 
+        <script type="text/javascript" src="/leaflet.markercluster.js"></script>
+
         <script type="text/javascript" src="/us-states.js"></script>
 
         <script type="text/javascript" src="/all-counties.js"></script>
@@ -90,7 +95,7 @@
             };
 
             info.update = function (props) {
-                const contents = props ? `<b>${props.NAME}</b><br>${sumByCounty(props.NAME)}</br>` : 'Hover over a county';
+                const contents = props ? `<b>${props.NAME}</b><br>${sumByCounty(props.NAME)} Estimated Acres Burned</br>` : 'Hover over a county';
                 this._div.innerHTML = `<h4>County</h4>${contents}`;
             };
 
@@ -130,7 +135,7 @@
                     fillOpacity: 0.7
                 });
 
-                layer.bringToFront();
+                //layer.bringToFront();
 
                 info.update(layer.feature.properties);
             }
@@ -140,8 +145,6 @@
                 style,
                 onEachFeature
             }).addTo(map);
-
-            //const oregonjson = L.
 
             function resetHighlight(e) {
                 geojson.resetStyle(e.target);
@@ -174,6 +177,12 @@
                 return Math.round(sum);
             }
 
+            function addCircleMarker(latitude, longitude) {
+                let latlng = L.latLng(latitude, longitude);
+
+                let marker = L.circleMarker(latlng).setRadius(1).addTo(map);
+            }
+
             map.attributionControl.addAttribution('Forest Fire Data &copy; <a href="http://oregon.gov/">Oregon Department of Forestry</a>');
 
 
@@ -198,6 +207,18 @@
             };
 
             legend.addTo(map);
+
+            let markers = L.markerClusterGroup();
+
+            for(fire of fires) {
+                if(fire.Lat_DD != undefined && fire.Long_DD != undefined) {
+                    if(fire.Lat_DD != "" && fire.Long_DD != "") {
+                        markers.addLayer(L.marker([fire.Lat_DD, fire.Long_DD]));
+                    }
+                }
+            }
+
+            markers.addTo(map);
 
         </script>
     </body>
