@@ -231,9 +231,11 @@
                         markers.addLayer((function(fire) {
                             return L.marker([fire.Lat_DD, fire.Long_DD]).on('mouseover', function(e) {
                                 countyInfo.update(fire);
+                                this._icon.classList.add('hovered');
                             });
                         })(fire).on('mouseout', function(e) {
                             countyInfo.update();
+                            this._icon.classList.remove('hovered');
                         }));
                     }
                 }
