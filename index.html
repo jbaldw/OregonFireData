@@ -65,7 +65,7 @@
         </style>
     </head>
     <body>
-
+        <h1 style="text-align: center;">Oregon Fire Occurrences from 2000-2022</h1>
         <div id='map'></div>
 
         <script type="text/javascript" src="/leaflet.markercluster.js"></script>
@@ -217,7 +217,7 @@
             };
 
             countyInfo.update = function (props) {
-                const contents = props ? `<b>${props.DistrictName}</b><br />Estimated Acres Burned: ${[props.EstTotalAcres]}<br /> Caused By: ${props.CauseBy}` : 'Hover over a fire';
+                const contents = props ? `<b>${props.DistrictName}</b><br />(Lat, Long): (${props.Lat_DD}, ${props.Long_DD})<br />Estimated Acres Burned: ${props.EstTotalAcres}<br /> Caused By: ${props.CauseBy}` : 'Hover over a fire';
                 this._div.innerHTML = `<h4>Fire</h4>${contents}`;
             };
 
