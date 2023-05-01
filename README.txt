@@ -1,0 +1,1 @@
+The application should run with "npm start" on a windows machine. You can also point your web browser to http://150.136.155.93/ to see the live production version of the website.
