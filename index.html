@@ -109,7 +109,19 @@
             <option value="2020">2020</option>
         </select>
 
+        <!-- Sidebar to display global fire stats -->
+        <div id="sidebar">
+            <h2 style="text-align: center;">Global Fire Stats</h2>
+            <div style="text-align: center">
+                <p style="text-align: center; display: inline">Total Acres Burned: <b><span id="total-acres-burned"></span></b></p>
+                <p style="text-align: center; display: inline">Total Fires: <b><span id="total-fires"></span></b></p>
+                <p style="text-align: center; display: inline">Most Common Cause:  <b><span id="most-common-cause"></span></b></p>
+            </div>
+        </div>
+
         <div id='map'></div>
+
+        <canvas id="barChart"></canvas>
 
         <script type="text/javascript" src="/leaflet.markercluster.js"></script>
 
@@ -119,7 +131,40 @@
 
         <script type="text/javascript" src="/fire-occurence.js"></script>
 
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+
         <script type="text/javascript">
+
+            let barChart;
+        
+            let currentYear = "ALL";
+
+            let totalAcresBurned = document.getElementById('total-acres-burned');
+
+            totalAcresBurned.innerHTML = addCommas(sumByYear(currentYear));
+
+            let totalFires = document.getElementById('total-fires');
+
+            totalFires.innerHTML = addCommas(addFiresByYear(currentYear));
+
+            let mostCommonCause = document.getElementById('most-common-cause');
+
+            mostCommonCause.innerHTML = mostCommonCauseByYear(currentYear);
+
+            // Change currentYear based on dropdown selection
+            document.getElementById("year-select").addEventListener("change", function() {
+                currentYear = this.value;
+
+                totalAcresBurned.innerHTML = addCommas(sumByYear(currentYear));
+
+                totalFires.innerHTML = addCommas(addFiresByYear(currentYear));
+
+                mostCommonCause.innerHTML = mostCommonCauseByYear(currentYear);
+
+                barChart.data.datasets[0].data = [avgAcresBurnedByCause('Lightning'), avgAcresBurnedByCause('Equipment Use'), avgAcresBurnedByCause('Debris Burning'), avgAcresBurnedByCause('Recreation'), avgAcresBurnedByCause('Miscellaneous')];
+
+                barChart.update();
+            });
 
             const map = L.map('map').setView([43.8, -120.55], 7);
 
@@ -128,7 +173,7 @@
                 attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             }).addTo(map);
 
-            // control that shows state info on hover
+            // Control that shows state info on hover
             const info = L.control();
 
             info.onAdd = function (map) {
@@ -137,9 +182,9 @@
                 return this._div;
             };
 
-            // Should be a function that returns the sum of acres burned for a given county in a given year
+            // Function that returns the sum of acres burned for a given county in a given year
             info.update = function (props) {
-                const contents = props ? `<b>${props.NAME}</b><br>${sumByCounty(props.NAME)} Estimated Acres Burned</br>` : 'Hover over a county';
+                const contents = props ? `<b>${props.NAME}</b><br>${addCommas(sumByCountyAndYear(props.NAME, currentYear))} Estimated Acres Burned</br>` : 'Hover over a county';
                 this._div.innerHTML = `<h4>County</h4>${contents}`;
             };
 
@@ -165,7 +210,7 @@
                     color: 'gray',
                     dashArray: '3',
                     fillOpacity: 0.7,
-                    fillColor: getColor(sumByCounty(feature.properties.NAME))
+                    fillColor: getColor(sumByCountyAndYear(feature.properties.NAME, currentYear))
                 };
             }
 
@@ -210,10 +255,20 @@
             function sumByCounty(county) {
                 let sum = 0;
 
+                if(county === "ALL") {
+                    for (let i = 0; i < fires.length; i++) {
+                        if(fires[i].EstTotalAcres) {
+                            sum += parseFloat(fires[i].EstTotalAcres);
+                        }
+                    }
+
+                    return Math.round(sum);
+                }
+
                 for (let i = 0; i < fires.length; i++) {
                     if(fires[i].EstTotalAcres) {
                         if (fires[i].County === county) {
-                        sum += parseFloat(fires[i].EstTotalAcres);
+                            sum += parseFloat(fires[i].EstTotalAcres);
                         }
                     }
                 }
@@ -222,12 +277,35 @@
             }
 
             function sumByCountyAndYear(county, year) {
+                if(year === "ALL") {
+                    return sumByCounty(county);
+                }
+                
                 let sum = 0;
 
                 for (let i = 0; i < fires.length; i++) {
                     if(fires[i].EstTotalAcres) {
                         if (fires[i].County === county && fires[i].FireYear === year) {
-                        sum += parseFloat(fires[i].EstTotalAcres);
+                            sum += parseFloat(fires[i].EstTotalAcres);
+                        }
+                    }
+                }
+
+                return Math.round(sum);
+            }
+
+            // Sums only by year and is agnostic to county
+            function sumByYear(year) {
+                let sum = 0;
+
+                if(year === "ALL") {
+                    return sumByCounty("ALL");
+                }
+
+                for (let i = 0; i < fires.length; i++) {
+                    if(fires[i].EstTotalAcres) {
+                        if (fires[i].FireYear === year) {
+                            sum += parseFloat(fires[i].EstTotalAcres);
                         }
                     }
                 }
@@ -239,6 +317,94 @@
                 let latlng = L.latLng(latitude, longitude);
 
                 let marker = L.circleMarker(latlng).setRadius(1).addTo(map);
+            }
+
+            function addCommas(num) {
+                let str = num.toString();
+                let result = '';
+                let count = 0;
+                
+                for (let i = str.length - 1; i >= 0; i--) {
+                    if (count !== 0 && count % 3 === 0) {
+                        result = ',' + result;
+                    }
+                    
+                    result = str[i] + result;
+                    count++;
+                }
+                
+                return result;
+            }
+
+            // Adds number of fires based on year
+            function addFiresByYear(year) {
+                let count = 0;
+
+                if(year === "ALL") {
+                    return fires.length;
+                }
+
+                for (let i = 0; i < fires.length; i++) {
+                    if (fires[i].FireYear === year) {
+                        count++;
+                    }
+                }
+
+                return count;
+            }
+
+            function mostCommonCauseAll() {
+                let causes = {};
+
+                for (let i = 0; i < fires.length; i++) {
+                    if (causes[fires[i].GeneralCause]) {
+                        causes[fires[i].GeneralCause]++;
+                    } else {
+                        causes[fires[i].GeneralCause] = 1;
+                    }
+                }
+
+                let max = 0;
+                let maxCause = "";
+
+                for (let cause in causes) {
+                    if (causes[cause] > max) {
+                        max = causes[cause];
+                        maxCause = cause;
+                    }
+                }
+
+                return maxCause;
+            }
+
+            function mostCommonCauseByYear(year) {
+                let causes = {};
+
+                if(year === "ALL") {
+                    return mostCommonCauseAll();
+                }
+
+                for (let i = 0; i < fires.length; i++) {
+                    if (fires[i].FireYear === year) {
+                        if (causes[fires[i].GeneralCause]) {
+                            causes[fires[i].GeneralCause]++;
+                        } else {
+                            causes[fires[i].GeneralCause] = 1;
+                        }
+                    }
+                }
+
+                let max = 0;
+                let maxCause = "";
+
+                for (let cause in causes) {
+                    if (causes[cause] > max) {
+                        max = causes[cause];
+                        maxCause = cause;
+                    }
+                }
+
+                return maxCause;
             }
 
             map.attributionControl.addAttribution('Forest Fire Data &copy; <a href="http://oregon.gov/">Oregon Department of Forestry</a>');
@@ -275,7 +441,7 @@
             };
 
             countyInfo.update = function (props) {
-                const contents = props ? `<b>${props.DistrictName}</b><br />(Lat, Long): (${props.Lat_DD}, ${props.Long_DD})<br />Estimated Acres Burned: ${props.EstTotalAcres}<br /> Caused By: ${props.CauseBy}` : 'Hover over a fire';
+                const contents = props ? `<b>${props.DistrictName}</b><br />(Lat, Long): (${props.Lat_DD}, ${props.Long_DD})<br />Estimated Acres Burned: ${props.EstTotalAcres}<br /> Caused By: ${props.CauseBy}<br />Land Type: ${props.FO_LandOwnType}<br />Size Class: ${props.Size_class}` : 'Hover over a fire';
                 this._div.innerHTML = `<h4>Fire</h4>${contents}`;
             };
 
@@ -363,6 +529,83 @@
                     });
                 }
             });
+
+            function avgAcresBurnedByCause(cause) {
+                let totalAcres = 0;
+                let numFires = 0;
+
+                if(currentYear == 'ALL') {
+                    for (let i = 0; i < fires.length; i++) {
+                        if (fires[i].GeneralCause == cause) {
+                            if(fires[i].EstTotalAcres) {
+                                totalAcres += parseFloat(fires[i].EstTotalAcres);
+                            }
+
+                            numFires++;
+                        }
+                    }
+
+                    return totalAcres / numFires;
+                }
+
+                for (let i = 0; i < fires.length; i++) {
+                    if (fires[i].GeneralCause == cause) {
+                        if(fires[i].FireYear == currentYear) {
+                            if(fires[i].EstTotalAcres) {
+                                totalAcres += parseFloat(fires[i].EstTotalAcres);
+                            }
+
+                            numFires++;
+                        }
+                    }
+                }
+
+                return totalAcres / numFires;
+                
+            }
+
+            // Creates bar chart showing average acres burned per top 5 causes
+            function createBarChart() {
+                let ctx = document.getElementById('barChart').getContext('2d');
+                barChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Lightning', 'Equipment Use', 'Debris Burning', 'Recreation', 'Miscellaneous'],
+                        datasets: [{
+                            label: 'Average Acres Burned by Top 5 Causes',
+                            data: [avgAcresBurnedByCause('Lightning'), avgAcresBurnedByCause('Equipment Use'), avgAcresBurnedByCause('Debris Burning'), avgAcresBurnedByCause('Recreation'), avgAcresBurnedByCause('Miscellaneous')],
+                            backgroundColor: [
+                                'rgba(255, 255, 0, 0.2)',
+                                'rgba(255, 0, 0, 0.2)',
+                                'rgba(0, 255, 0, 0.2)',
+                                'rgba(0, 0, 255, 0.2)',
+                                'rgba(255, 0, 255, 0.2)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 255, 0, 1)',
+                                'rgba(255, 0, 0, 1)',
+                                'rgba(0, 255, 0, 1)',
+                                'rgba(0, 0, 255, 1)',
+                                'rgba(255, 0, 255, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    suggestedMin: 0
+                                }
+                            }]
+                        }
+                    }
+                });
+            }
+
+            createBarChart();
+            
+            
         </script>
     </body>
 </html>
